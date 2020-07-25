@@ -1,0 +1,100 @@
+---
+title: "reproducible research ass 1"
+author: "melody"
+date: "7/25/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+##q1
+#download
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(httpuv)
+#load data
+setwd("C:\\Users\\vantr\\OneDrive\\Documents\\R\\tu hoc\\Reproducible Research")
+activity <- read.csv("activity.csv", header=TRUE, na.strings = "NA")
+activity$date <- ymd(activity$date)
+#remove NA
+activity1 <- na.omit(activity)
+#create new variables
+activity$monthly <- as.numeric(format(activity$date, "%m"))
+activity$daily <- as.numeric(format(activity$date, "%d"))
+#check 
+summary(activity1 )
+str(activity1)
+head(activity1)
+tail(activity1)
+##q2
+#make histrogram
+activity2 <- summarize(group_by(activity1,date),daily.step=sum(steps))
+mean.activity <- as.integer(mean(activity2$daily.step))
+median.activity <- as.integer(median(activity2$daily.step))
+#plot
+plot.steps.day <- ggplot(activity2, aes(x=daily.step)) + 
+  geom_histogram(binwidth = 1000, aes(y=..count.., fill=..count..)) + 
+  geom_vline(xintercept=mean.activity, colour="blue", linetype="dashed", size=1) +
+  geom_vline(xintercept=median.activity, colour="green" , linetype="dotted", size=1) +
+  labs(title="Histogram of Number of Steps taken each day", y="Frequency", x="Daily Steps") 
+plot.steps.day
+dev.copy(png)
+dev.off()
+#mean
+mean.activity
+#median
+median.activity
+##q3
+activity3 <- activity1 %>% group_by(interval) %>% summarize(mean.step=mean(steps))
+plot.step.interval <- ggplot(activity3, aes(x=interval,y=mean.step)) + 
+  geom_line(color="yellow") + 
+  labs(title="Average Number of Steps Taken vs 5-min Interval", y="Average Number of Steps", x="5-min Interval Times Series")
+plot.step.interval
+dev.copy(png,"plot.step.interval")
+dev.off()
+#5-minute interval
+optimal <- which.max(activity3$mean.step)
+optimal.step <- activity3$interval[optimal]
+sprintf("Maximum number of steps is coming from %gth 5-min interval", optimal.step)
+##q4
+#total number of missing values
+sum(is.na(activity))
+#filling
+imp.activity <- activity
+imp.activity$steps[is.na(imp.activity$steps)] <- mean(imp.activity$steps,na.rm=TRUE)
+imp.activity$steps <- as.numeric(imp.activity$steps)
+imp.activity$interval <- as.numeric(imp.activity$interval)
+colSums(is.na(imp.activity))
+#new dataset
+summary(imp.activity)
+#histogram
+imp.activity2 <- summarize(group_by(imp.activity,date),daily.step=sum(steps))
+
+mean.imp   <- as.integer(mean(imp.activity2$daily.step))
+mean.imp
+
+#plot
+plot.steps.day <- ggplot(imp.activity2, aes(x=daily.step)) + 
+  geom_histogram(binwidth = 1000, aes(y=..count.., fill=..count..)) + 
+  geom_vline(xintercept=mean.imp, colour="pink", linetype="dashed", size=1) +
+  geom_vline(xintercept=median.imp, colour="blue" , linetype="dotted", size=1) +
+  labs(title="Histogram of Number of Steps taken each day (impute)", y="Frequency", x="Daily Steps")
+plot.steps.day
+dev.copy(png,"plot.steps.day")
+dev.off()
+##q5
+imp.activity$day <- ifelse(weekdays(imp.activity$date) %in% c("Saturday","Sunday"), "weekday", "weekend")
+imp.df <- imp.activity %>% group_by(interval,day) %>% summarise(mean.step=mean(steps))
+plot.weekday.interval <- ggplot(imp.df, aes(x=interval, y=mean.step, color=day)) + 
+  facet_grid(day~.) +
+  geom_line() + 
+  labs(title="Average Number of Steps Taken vs 5-min Interval on Weekday/Weekend", y="Average Number of Steps", x="5-min Interval Times Series")
+plot.weekday.interval
+dev.copy(png,"plot.weekday.interval")
+dev.off()
+knit2html()
+
